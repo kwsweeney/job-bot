@@ -3,7 +3,19 @@ from __future__ import annotations
 
 import json
 
+import os
+
 from .profile import Profile
+
+# Matches a modern desktop Chrome; override with JOB_BOT_USER_AGENT.
+CHROME_USER_AGENT = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+)
+
+
+def user_agent() -> str:
+    return os.environ.get("JOB_BOT_USER_AGENT") or CHROME_USER_AGENT
 
 # JS run in the page: tag each visible form control with data-jb-id, return descriptors.
 COLLECT_JS = """() => {
@@ -95,8 +107,9 @@ def apply_all(llm, profile: Profile, jobs: list[dict], headless: bool = False, d
     results = {}
     with sync_playwright() as pw:
         browser = pw.chromium.launch(headless=headless)
+        context = browser.new_context(user_agent=user_agent())
         for job in jobs:
-            page = browser.new_page()
+            page = context.new_page()
             try:
                 results[job["url"]] = apply_to_job(page, llm, profile, job, dry_run=dry_run)
             except Exception as exc:  # keep going with remaining jobs
@@ -104,5 +117,6 @@ def apply_all(llm, profile: Profile, jobs: list[dict], headless: bool = False, d
                 results[job["url"]] = False
             finally:
                 page.close()
+        context.close()
         browser.close()
     return results

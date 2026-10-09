@@ -24,3 +24,4 @@ Tests: `poetry run pytest`.
 - A job that errors is skipped and the rest continue; the final output lists each URL as submitted or not.
 - Not supported: sites that require a login, CAPTCHAs, and custom dropdowns that aren't a real `<select>` element.
 - `GEMINI_MODEL` is optional and defaults to `gemini-2.5-flash`.
+- The browser sends a desktop Chrome user agent (Chrome 131); set `JOB_BOT_USER_AGENT` to override it, e.g. to update the version.

@@ -93,3 +93,13 @@ def test_cli_help():
 
     res = CliRunner().invoke(main, ["run", "--help"])
     assert res.exit_code == 0 and "--dry-run" in res.output
+
+
+def test_user_agent_is_chrome(monkeypatch):
+    from job_bot.applicant import user_agent
+
+    monkeypatch.delenv("JOB_BOT_USER_AGENT", raising=False)
+    ua = user_agent()
+    assert "Chrome/" in ua and "HeadlessChrome" not in ua
+    monkeypatch.setenv("JOB_BOT_USER_AGENT", "custom")
+    assert user_agent() == "custom"
