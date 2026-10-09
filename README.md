@@ -16,3 +16,11 @@ export GEMINI_API_KEY=...        # optional: GEMINI_MODEL
 Flags for `run`: `--dry-run` (fill but don't submit), `--search-only` (print URLs), `--headless`.
 
 Tests: `poetry run pytest`.
+
+## Things to know
+- Try `--dry-run` (fills forms without submitting) or `--search-only` (prints job URLs) before a real run.
+- Search runs up to three rounds to reach `num_roles` unique job URLs; it may return fewer.
+- Each application is limited to 15 pages. If no Next/Submit button is found on a page, that application stops without submitting.
+- A job that errors is skipped and the rest continue; the final output lists each URL as submitted or not.
+- Not supported: sites that require a login, CAPTCHAs, and custom dropdowns that aren't a real `<select>` element.
+- `GEMINI_MODEL` is optional and defaults to `gemini-2.5-flash`.
