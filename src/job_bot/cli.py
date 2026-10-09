@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-import argparse
-import sys
+import click
 
 from .applicant import apply_all
 from .llm import Gemini
@@ -10,37 +9,40 @@ from .resume import review_resume
 from .search import find_jobs
 
 
-def main(argv: list[str] | None = None) -> int:
-    ap = argparse.ArgumentParser(prog="job-bot")
-    sub = ap.add_subparsers(dest="cmd", required=True)
-    g = sub.add_parser("generate", help="Review a PDF resume and write the Markdown profile")
-    g.add_argument("resume")
-    g.add_argument("-o", "--output", default="job_profile.md")
-    r = sub.add_parser("run", help="Search for jobs and apply")
-    r.add_argument("-p", "--profile", default="job_profile.md")
-    r.add_argument("--headless", action="store_true")
-    r.add_argument("--dry-run", action="store_true", help="Fill forms but do not submit")
-    r.add_argument("--search-only", action="store_true", help="Only print job URLs")
-    args = ap.parse_args(argv)
+@click.group()
+def main() -> None:
+    """Review a resume, find matching jobs, and apply."""
 
+
+@main.command()
+@click.argument("resume", type=click.Path(exists=True, dir_okay=False))
+@click.option("-o", "--output", default="job_profile.md", show_default=True, help="Profile file to write.")
+def generate(resume: str, output: str) -> None:
+    """Review a PDF resume and write the Markdown profile."""
     llm = Gemini()
-    if args.cmd == "generate":
-        with open(args.output, "w", encoding="utf-8") as fh:
-            fh.write(review_resume(llm, args.resume))
-        print(f"Wrote {args.output}. Edit it, then run: job-bot run")
-        return 0
+    with open(output, "w", encoding="utf-8") as fh:
+        fh.write(review_resume(llm, resume))
+    click.echo(f"Wrote {output}. Edit it, then run: job-bot run")
 
-    profile = load_profile(args.profile)
+
+@main.command()
+@click.option("-p", "--profile", "profile_path", default="job_profile.md", show_default=True)
+@click.option("--headless", is_flag=True, help="Run the browser headless.")
+@click.option("--dry-run", is_flag=True, help="Fill forms but do not submit.")
+@click.option("--search-only", is_flag=True, help="Only print job URLs.")
+def run(profile_path: str, headless: bool, dry_run: bool, search_only: bool) -> None:
+    """Search for jobs and apply."""
+    llm = Gemini()
+    profile = load_profile(profile_path)
     jobs = find_jobs(llm, profile)
     for j in jobs:
-        print(f"{j['title']} @ {j['company']}: {j['url']}")
-    if args.search_only:
-        return 0
-    results = apply_all(llm, profile, jobs, headless=args.headless, dry_run=args.dry_run)
+        click.echo(f"{j['title']} @ {j['company']}: {j['url']}")
+    if search_only:
+        return
+    results = apply_all(llm, profile, jobs, headless=headless, dry_run=dry_run)
     for url, ok in results.items():
-        print(("SUBMITTED " if ok else "NOT SUBMITTED ") + url)
-    return 0
+        click.echo(("SUBMITTED " if ok else "NOT SUBMITTED ") + url)
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    main()

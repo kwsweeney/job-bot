@@ -85,3 +85,11 @@ def test_dry_run_does_not_submit():
     llm = FakeLLM([{"actions": [], "submit": "jb1"}])
     assert apply_to_job(page, llm, Profile(), {"url": "http://x"}, dry_run=True) is False
     assert not page.log
+
+
+def test_cli_help():
+    from click.testing import CliRunner
+    from job_bot.cli import main
+
+    res = CliRunner().invoke(main, ["run", "--help"])
+    assert res.exit_code == 0 and "--dry-run" in res.output
